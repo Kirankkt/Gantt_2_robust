@@ -7,6 +7,20 @@ import sqlalchemy
 import time  # For adding a timestamp in the query params
 from sqlalchemy import text
 
+import math
+
+def convert_nan_to_none(data):
+    """Recursively replace NaN values in data with None."""
+    if isinstance(data, dict):
+        return {k: convert_nan_to_none(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_nan_to_none(item) for item in data]
+    elif isinstance(data, float):
+        return None if math.isnan(data) else data
+    else:
+        return data
+
+
 
 # ------------------------------------------------------------------------------
 # Database Connection Setup
@@ -34,14 +48,19 @@ def log_audit(action: str, table_name: str, old_data: dict = None):
         INSERT INTO timeline_audit (table_name, action, old_data)
         VALUES (:table_name, :action, :old_data)
     """)
+    if old_data:
+        processed_data = convert_nan_to_none(old_data)
+        old_data_json = json.dumps(processed_data, default=str)
+    else:
+        old_data_json = None
+
     with engine.connect() as conn:
         conn.execute(sql, {
             "table_name": table_name,
             "action": action,
-            "old_data": json.dumps(old_data, default=str) if old_data else None
+            "old_data": old_data_json
         })
         conn.commit()
-
 # ------------------------------------------------------------------------------
 # 1. LOAD TIMELINE DATA FROM POSTGRES
 # ------------------------------------------------------------------------------
