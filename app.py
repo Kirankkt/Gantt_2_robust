@@ -5,6 +5,8 @@ import io
 from datetime import datetime
 import sqlalchemy
 import time  # For adding a timestamp in the query params
+from sqlalchemy import text
+
 
 # ------------------------------------------------------------------------------
 # Database Connection Setup
