@@ -428,6 +428,7 @@ if "Start Date" in df_filtered.columns and "End Date" in df_filtered.columns:
 # 6. GANTT CHART FUNCTION
 # ------------------------------------------------------------------------------
 def create_gantt_chart(df_input: pd.DataFrame, color_by_status: bool = True):
+    df_input = df_input.dropna(subset=["Start Date", "End Date"])
     needed = ["Start Date", "End Date", "Status", "Progress"]
     missing = [c for c in needed if c not in df_input.columns]
     if missing:
