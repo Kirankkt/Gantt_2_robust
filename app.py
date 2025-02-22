@@ -407,7 +407,7 @@ if not show_finished:
     df_filtered = df_filtered[~df_filtered["Status_norm"].isin(["finished"])]
 
 if "Start Date" in df_filtered.columns and "End Date" in df_filtered.columns:
-    # Only filter if both dates have been provided
+    # Check that selected_date_range is a list or tuple with two elements
     if isinstance(selected_date_range, (list, tuple)) and len(selected_date_range) == 2:
         srange, erange = selected_date_range
         srange = pd.to_datetime(srange)
