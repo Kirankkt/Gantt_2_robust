@@ -28,16 +28,17 @@ def log_audit(action: str, table_name: str, old_data: dict = None):
     :param old_data: A dictionary of the row's data before deletion.
     """
     engine = get_engine()
-    sql = """
+    sql = text("""
         INSERT INTO timeline_audit (table_name, action, old_data)
-        VALUES (%s, %s, %s)
-    """
-    engine.execute(sql, (
-        table_name,
-        action,
-        json.dumps(old_data) if old_data else None
-    ))
-
+        VALUES (:table_name, :action, :old_data)
+    """)
+    with engine.connect() as conn:
+        conn.execute(sql, {
+            "table_name": table_name,
+            "action": action,
+            "old_data": json.dumps(old_data) if old_data else None
+        })
+        conn.commit()
 
 # ------------------------------------------------------------------------------
 # 1. LOAD TIMELINE DATA FROM POSTGRES
