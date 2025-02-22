@@ -628,14 +628,29 @@ st.markdown("---")
 # ------------------------------------------------------------------------------
 # 9. SECOND TABLE: ITEMS TO ORDER
 # ------------------------------------------------------------------------------
-# --- Section 9: SECOND TABLE: ITEMS TO ORDER ---
-
-# --- Section 9: SECOND TABLE: ITEMS TO ORDER ---
+# ------------------------------------------------------------------------------  
+# 9. SECOND TABLE: ITEMS TO ORDER  
+# ------------------------------------------------------------------------------  
 
 st.header("Items to Order")
 
-# Define the column configuration for the items table
+# Load original items data for comparison (do this first)
+df_items_original = load_items_data()
+
+# Ensure required columns exist
+for needed_col in ["Item", "Quantity", "Order Status", "Delivery Status", "Notes"]:
+    if needed_col not in df_items_original.columns:
+        df_items_original[needed_col] = ""
+
+df_items_original["Item"] = df_items_original["Item"].astype(str)
+df_items_original["Quantity"] = pd.to_numeric(df_items_original["Quantity"], errors="coerce").fillna(0).astype(int)
+df_items_original["Order Status"] = df_items_original["Order Status"].astype(str)
+df_items_original["Delivery Status"] = df_items_original["Delivery Status"].astype(str)
+df_items_original["Notes"] = df_items_original["Notes"].astype(str)
+
+# Now define the column configuration for the items table
 items_col_config = {}
+
 # Add ID column configuration if present in df_items_original (read-only)
 if "id" in df_items_original.columns:
     items_col_config["id"] = st.column_config.NumberColumn(
@@ -643,6 +658,7 @@ if "id" in df_items_original.columns:
         help="Unique Row ID (auto-increment from DB)",
         disabled=True
     )
+
 items_col_config["Item"] = st.column_config.TextColumn(
     "Item",
     help="Enter the name of the item."
@@ -667,20 +683,6 @@ items_col_config["Notes"] = st.column_config.TextColumn(
     "Notes",
     help="Enter any notes or remarks here."
 )
-
-# Load original items data for comparison
-df_items_original = load_items_data()
-
-# Ensure required columns exist
-for needed_col in ["Item", "Quantity", "Order Status", "Delivery Status", "Notes"]:
-    if needed_col not in df_items_original.columns:
-        df_items_original[needed_col] = ""
-
-df_items_original["Item"] = df_items_original["Item"].astype(str)
-df_items_original["Quantity"] = pd.to_numeric(df_items_original["Quantity"], errors="coerce").fillna(0).astype(int)
-df_items_original["Order Status"] = df_items_original["Order Status"].astype(str)
-df_items_original["Delivery Status"] = df_items_original["Delivery Status"].astype(str)
-df_items_original["Notes"] = df_items_original["Notes"].astype(str)
 
 # Render the data editor with a copy of the original data
 edited_df_items = st.data_editor(
