@@ -260,6 +260,9 @@ if "End Date" in df_main.columns:
     )
 # --- Before the data editor, store the original DataFrame ---
 df_main_original = load_timeline_data()
+# (Optional: Reorder columns so that "id" is first)
+if "id" in df_main_original.columns:
+    df_main_original = df_main_original[["id"] + [col for col in df_main_original.columns if col != "id"]]
 
 # Render the data editor; pass a copy of the original so editing does not affect our "before" snapshot
 edited_df_main = st.data_editor(
@@ -636,6 +639,10 @@ st.header("Items to Order")
 
 # Load original items data for comparison (do this first)
 df_items_original = load_items_data()
+# --- REORDER: Move the "id" column to the left if it exists ---
+if "id" in df_items_original.columns:
+    df_items_original = df_items_original[["id"] + [col for col in df_items_original.columns if col != "id"]]
+
 
 # Ensure required columns exist
 for needed_col in ["Item", "Quantity", "Order Status", "Delivery Status", "Notes"]:
