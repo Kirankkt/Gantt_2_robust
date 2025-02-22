@@ -260,7 +260,7 @@ if st.button("Save Updates (Main Timeline)"):
         for idx in deleted_indices:
             # Capture the row from the original DataFrame before deletion
             old_data = df_main_original.loc[idx].to_dict()
-            log_audit(action="DELETE", table_name="Construction_timeline_1", old_data=old_data)
+            log_audit(action="DELETE", table_name="construction_timeline_1", old_data=old_data)
         st.info(f"Audit log: {len(deleted_indices)} row(s) deletion recorded.")
 
     try:
