@@ -38,7 +38,7 @@ def log_audit(action: str, table_name: str, old_data: dict = None):
         conn.execute(sql, {
             "table_name": table_name,
             "action": action,
-            "old_data": json.dumps(old_data) if old_data else None
+            "old_data": json.dumps(old_data, default=str) if old_data else None
         })
         conn.commit()
 
