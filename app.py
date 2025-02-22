@@ -139,7 +139,7 @@ def save_items_data(df: pd.DataFrame):
 # ------------------------------------------------------------------------------
 # APP CONFIGURATION & TITLE
 # ------------------------------------------------------------------------------
-st.set_page_config(page_title="Construction Project Manager Dashboard", layout="wide")
+st.set_page_config(page_title="Construction Project Manager Dashboard II", layout="wide")
 st.title("Construction Project Manager Dashboard")
 st.markdown(
     "This dashboard provides an overview of the construction project, including task snapshots, "
