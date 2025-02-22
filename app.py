@@ -623,7 +623,36 @@ st.markdown("---")
 # ------------------------------------------------------------------------------
 # --- Section 9: SECOND TABLE: ITEMS TO ORDER ---
 
+# --- Section 9: SECOND TABLE: ITEMS TO ORDER ---
+
 st.header("Items to Order")
+
+# Define the column configuration for the items table
+items_col_config = {}
+items_col_config["Item"] = st.column_config.TextColumn(
+    "Item",
+    help="Enter the name of the item."
+)
+items_col_config["Quantity"] = st.column_config.NumberColumn(
+    "Quantity",
+    min_value=0,
+    step=1,
+    help="Enter the quantity required."
+)
+items_col_config["Order Status"] = st.column_config.SelectboxColumn(
+    "Order Status",
+    options=["Ordered", "Not Ordered"],
+    help="Choose if this item is ordered or not."
+)
+items_col_config["Delivery Status"] = st.column_config.SelectboxColumn(
+    "Delivery Status",
+    options=["Delivered", "Not Delivered", "Delayed"],
+    help="Delivery status of the item."
+)
+items_col_config["Notes"] = st.column_config.TextColumn(
+    "Notes",
+    help="Enter any notes or remarks here."
+)
 
 # Load original items data for comparison
 df_items_original = load_items_data()
