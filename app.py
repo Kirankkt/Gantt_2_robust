@@ -45,7 +45,7 @@ def log_audit(action: str, table_name: str, old_data: dict = None):
 @st.cache_data(ttl=60)
 def load_timeline_data() -> pd.DataFrame:
     engine = get_engine()
-    query = "SELECT * FROM construction_timeline_3"
+    query = "SELECT * FROM construction_timeline_1"
     df = pd.read_sql(query, engine)
     # Clean column names (trim any extra spaces)
     df.columns = df.columns.str.strip()
@@ -81,7 +81,7 @@ def load_timeline_data() -> pd.DataFrame:
 @st.cache_data(ttl=60)
 def load_items_data() -> pd.DataFrame:
     engine = get_engine()
-    query = "SELECT * FROM cleaned_items"
+    query = "SELECT * FROM items_order_1"
     df = pd.read_sql(query, engine)
     df.columns = df.columns.str.strip()
     mapping = {
@@ -106,12 +106,12 @@ def load_items_data() -> pd.DataFrame:
 def save_timeline_data(df: pd.DataFrame):
     engine = get_engine()
     # Replace the table with the updated DataFrame
-    df.to_sql("construction_timeline_3", engine, if_exists="replace", index=False)
+    df.to_sql("construction_timeline_1", engine, if_exists="replace", index=False)
     load_timeline_data.clear()  # clear cache so that reload shows changes
 
 def save_items_data(df: pd.DataFrame):
     engine = get_engine()
-    df.to_sql("cleaned_items", engine, if_exists="replace", index=False)
+    df.to_sql("items_order_1", engine, if_exists="replace", index=False)
     load_items_data.clear()
 
 # ------------------------------------------------------------------------------
