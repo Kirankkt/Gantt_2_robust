@@ -5,7 +5,6 @@ import io
 from datetime import datetime
 import sqlalchemy
 import time  # For adding a timestamp in the query params
-import json
 
 # ------------------------------------------------------------------------------
 # Database Connection Setup
@@ -19,10 +18,8 @@ def get_engine():
     connection_string = st.secrets["postgres"]["connection_string"]
     engine = sqlalchemy.create_engine(connection_string)
     return engine
+import json
 
-# ------------------------------------------------------------------------------
-# AUDIT LOG FUNCTION
-# ------------------------------------------------------------------------------
 def log_audit(action: str, table_name: str, old_data: dict = None):
     """
     Inserts an audit log record into the timeline_audit table.
@@ -41,14 +38,14 @@ def log_audit(action: str, table_name: str, old_data: dict = None):
         json.dumps(old_data) if old_data else None
     ))
 
+
 # ------------------------------------------------------------------------------
 # 1. LOAD TIMELINE DATA FROM POSTGRES
 # ------------------------------------------------------------------------------
 @st.cache_data(ttl=60)
 def load_timeline_data() -> pd.DataFrame:
     engine = get_engine()
-    # Changed table name to Construction_timeline_1
-    query = "SELECT * FROM construction_timeline_1"
+    query = "SELECT * FROM construction_timeline_3"
     df = pd.read_sql(query, engine)
     # Clean column names (trim any extra spaces)
     df.columns = df.columns.str.strip()
@@ -84,8 +81,7 @@ def load_timeline_data() -> pd.DataFrame:
 @st.cache_data(ttl=60)
 def load_items_data() -> pd.DataFrame:
     engine = get_engine()
-    # Changed table name to Items_Order_1
-    query = "SELECT * FROM items_order_1"
+    query = "SELECT * FROM cleaned_items"
     df = pd.read_sql(query, engine)
     df.columns = df.columns.str.strip()
     mapping = {
@@ -109,14 +105,13 @@ def load_items_data() -> pd.DataFrame:
 # ------------------------------------------------------------------------------
 def save_timeline_data(df: pd.DataFrame):
     engine = get_engine()
-    # Changed table name to Construction_timeline_1
-    df.to_sql("construction_timeline_1", engine, if_exists="replace", index=False)
+    # Replace the table with the updated DataFrame
+    df.to_sql("construction_timeline_3", engine, if_exists="replace", index=False)
     load_timeline_data.clear()  # clear cache so that reload shows changes
 
 def save_items_data(df: pd.DataFrame):
     engine = get_engine()
-    # Changed table name to Items_Order_1
-    df.to_sql("items_order_1", engine, if_exists="replace", index=False)
+    df.to_sql("cleaned_items", engine, if_exists="replace", index=False)
     load_items_data.clear()
 
 # ------------------------------------------------------------------------------
@@ -142,42 +137,128 @@ st.markdown(hide_stdataeditor_bug_tooltip, unsafe_allow_html=True)
 # ------------------------------------------------------------------------------
 # 4. MAIN TIMELINE: DATA EDITOR & ROW/COLUMN MANAGEMENT
 # ------------------------------------------------------------------------------
-# Load original timeline data and make a copy for editing
+df_main = load_timeline_data()
+
+st.subheader("Update Task Information (Main Timeline)")
+
+with st.sidebar.expander("Row & Column Management (Main Timeline)"):
+    st.markdown("*Delete a row by index*")
+    delete_index = st.text_input("Enter row index to delete (main table)", value="")
+    if st.button("Delete Row (Main)"):
+        if delete_index.isdigit():
+            idx = int(delete_index)
+            if 0 <= idx < len(df_main):
+                df_main.drop(df_main.index[idx], inplace=True)
+                try:
+                    save_timeline_data(df_main)
+                    st.sidebar.success(f"Row {idx} deleted and saved.")
+                    df_main = load_timeline_data()  # reload updated data
+                except Exception as e:
+                    st.sidebar.error(f"Error saving data: {e}")
+            else:
+                st.sidebar.error("Invalid index.")
+        else:
+            st.sidebar.error("Please enter a valid integer index.")
+
+    st.markdown("*Add a new column*")
+    new_col_name = st.text_input("New Column Name (main table)", value="")
+    new_col_type = st.selectbox("Column Type (main table)", ["string", "integer", "float", "datetime"])
+    if st.button("Add Column (Main)"):
+        if new_col_name and new_col_name not in df_main.columns:
+            if new_col_type == "string":
+                df_main[new_col_name] = ""
+                df_main[new_col_name] = df_main[new_col_name].astype(object)
+            elif new_col_type == "integer":
+                df_main[new_col_name] = 0
+            elif new_col_type == "float":
+                df_main[new_col_name] = 0.0
+            elif new_col_type == "datetime":
+                df_main[new_col_name] = pd.NaT
+            try:
+                save_timeline_data(df_main)
+                st.sidebar.success(f"Column '{new_col_name}' added and saved.")
+                df_main = load_timeline_data()
+            except Exception as e:
+                st.sidebar.error(f"Error saving data: {e}")
+        else:
+            st.sidebar.warning("Column already exists or invalid name.")
+
+    st.markdown("*Delete a column*")
+    col_to_delete = st.selectbox(
+        "Select Column to Delete (main table)",
+        options=[""] + list(df_main.columns),
+        index=0
+    )
+    if st.button("Delete Column (Main)"):
+        if col_to_delete and col_to_delete in df_main.columns:
+            df_main.drop(columns=[col_to_delete], inplace=True)
+            try:
+                save_timeline_data(df_main)
+                st.sidebar.success(f"Column '{col_to_delete}' deleted and saved.")
+                df_main = load_timeline_data()
+            except Exception as e:
+                st.sidebar.error(f"Error saving data: {e}")
+        else:
+            st.sidebar.warning("Please select a valid column.")
+
+# Configure columns for the data editor.
+# For Activity, Item, Task, Room, and Location, we use TextColumn so users can type freely.
+column_config_main = {}
+for col in ["Activity", "Item", "Task", "Room", "Location"]:
+    if col in df_main.columns:
+        column_config_main[col] = st.column_config.TextColumn(
+            col,
+            help=f"Enter or select a value for {col}."
+        )
+# For Status, we provide fixed options.
+if "Status" in df_main.columns:
+    column_config_main["Status"] = st.column_config.SelectboxColumn(
+        "Status", options=["Finished", "In Progress", "Not Started", "Delayed"], help="Status"
+    )
+# For Progress, use a NumberColumn.
+if "Progress" in df_main.columns:
+    column_config_main["Progress"] = st.column_config.NumberColumn(
+        "Progress", min_value=0, max_value=100, step=1, help="Progress %"
+    )
+# For dates, use DateColumn.
+if "Start Date" in df_main.columns:
+    column_config_main["Start Date"] = st.column_config.DateColumn(
+        "Start Date", help="Project start date"
+    )
+if "End Date" in df_main.columns:
+    column_config_main["End Date"] = st.column_config.DateColumn(
+        "End Date", help="Project end date"
+    )
+# --- Before the data editor, store the original DataFrame ---
 df_main_original = load_timeline_data()
-# Use a copy so that original remains unchanged for audit comparison
+
+# Render the data editor; pass a copy of the original so editing does not affect our "before" snapshot
 edited_df_main = st.data_editor(
     df_main_original.copy(),
-    column_config={
-        col: st.column_config.TextColumn(col, help=f"Enter or select a value for {col}.")
-        for col in ["Activity", "Item", "Task", "Room", "Location"]
-        if col in df_main_original.columns
-    },
+    column_config=column_config_main,
     use_container_width=True,
     num_rows="dynamic"
 )
 
-# Configure additional columns (Status, Progress, Start Date, End Date)
-if "Status" in edited_df_main.columns:
-    edited_df_main["Status"] = edited_df_main["Status"].astype(str).fillna("Not Started")
-
 if st.button("Save Updates (Main Timeline)"):
-    # Define a helper to normalize the status values
+    # Normalize status values as before
     def normalize_status(x):
         if pd.isna(x) or str(x).strip().lower() in ["", "na", "null", "none"]:
             return "Not Started"
         return x
 
     edited_df_main["Status"] = edited_df_main["Status"].apply(normalize_status)
-    # Auto-update progress for tasks marked as finished
     edited_df_main.loc[edited_df_main["Status"].str.lower() == "finished", "Progress"] = 100
 
-    # --- Audit Logging for Deletions in Timeline ---
+    # --- Audit Logging for Deletions ---
+    # Compare the original indices with the edited indices
     original_indices = set(df_main_original.index)
     edited_indices = set(edited_df_main.index)
     deleted_indices = original_indices - edited_indices
 
     if deleted_indices:
         for idx in deleted_indices:
+            # Capture the row from the original DataFrame before deletion
             old_data = df_main_original.loc[idx].to_dict()
             log_audit(action="DELETE", table_name="Construction_timeline_1", old_data=old_data)
         st.info(f"Audit log: {len(deleted_indices)} row(s) deletion recorded.")
@@ -191,6 +272,7 @@ if st.button("Save Updates (Main Timeline)"):
 # ------------------------------------------------------------------------------
 # REFRESH BUTTON (using st.set_query_params)
 # ------------------------------------------------------------------------------
+# --- Instead of st.set_query_params(...) ---
 if st.button("Refresh Data (Main Timeline)"):
     load_timeline_data.clear()  # clear the cache
     st.markdown(
@@ -204,6 +286,7 @@ if st.button("Refresh Data (Main Timeline)"):
         unsafe_allow_html=True
     )
 
+
 # ------------------------------------------------------------------------------
 # 5. SIDEBAR FILTERS FOR MAIN TIMELINE & GANTT CHART
 # ------------------------------------------------------------------------------
@@ -214,6 +297,7 @@ def norm_unique(df_input: pd.DataFrame, col: str):
         return []
     return sorted(set(df_input[col].dropna().astype(str).str.lower().str.strip()))
 
+# Initialize filter session state
 if "activity_filter" not in st.session_state:
     st.session_state["activity_filter"] = []
 if "item_filter" not in st.session_state:
@@ -515,33 +599,53 @@ st.markdown("---")
 # ------------------------------------------------------------------------------
 # 9. SECOND TABLE: ITEMS TO ORDER
 # ------------------------------------------------------------------------------
-# Load original items data and make a copy for editing
-df_items_original = load_items_data()
+st.header("Items to Order")
+df_items = load_items_data()
+for needed_col in ["Item", "Quantity", "Order Status", "Delivery Status", "Notes"]:
+    if needed_col not in df_items.columns:
+        df_items[needed_col] = ""
+df_items["Item"] = df_items["Item"].astype(str)
+df_items["Quantity"] = pd.to_numeric(df_items["Quantity"], errors="coerce").fillna(0).astype(int)
+df_items["Order Status"] = df_items["Order Status"].astype(str)
+df_items["Delivery Status"] = df_items["Delivery Status"].astype(str)
+df_items["Notes"] = df_items["Notes"].astype(str)
+
+# Configure columns for the items table.
+# For Item, we use a TextColumn to allow freeform input.
+items_col_config = {}
+items_col_config["Item"] = st.column_config.TextColumn(
+    "Item",
+    help="Enter the name of the item."
+)
+items_col_config["Quantity"] = st.column_config.NumberColumn(
+    "Quantity",
+    min_value=0,
+    step=1,
+    help="Enter the quantity required."
+)
+items_col_config["Order Status"] = st.column_config.SelectboxColumn(
+    "Order Status",
+    options=["Ordered", "Not Ordered"],
+    help="Choose if this item is ordered or not."
+)
+items_col_config["Delivery Status"] = st.column_config.SelectboxColumn(
+    "Delivery Status",
+    options=["Delivered", "Not Delivered", "Delayed"],
+    help="Delivery status of the item."
+)
+items_col_config["Notes"] = st.column_config.TextColumn(
+    "Notes",
+    help="Enter any notes or remarks here."
+)
+
 edited_df_items = st.data_editor(
-    df_items_original.copy(),
-    column_config= {
-        "Item": st.column_config.TextColumn("Item", help="Enter the name of the item."),
-        "Quantity": st.column_config.NumberColumn("Quantity", min_value=0, step=1, help="Enter the quantity required."),
-        "Order Status": st.column_config.SelectboxColumn("Order Status", options=["Ordered", "Not Ordered"], help="Choose if this item is ordered or not."),
-        "Delivery Status": st.column_config.SelectboxColumn("Delivery Status", options=["Delivered", "Not Delivered", "Delayed"], help="Delivery status of the item."),
-        "Notes": st.column_config.TextColumn("Notes", help="Enter any notes or remarks here.")
-    },
+    df_items,
+    column_config=items_col_config,
     use_container_width=True,
     num_rows="dynamic"
 )
 
 if st.button("Save Items Table"):
-    # Audit logging for deletions in items table
-    original_indices_items = set(df_items_original.index)
-    edited_indices_items = set(edited_df_items.index)
-    deleted_indices_items = original_indices_items - edited_indices_items
-
-    if deleted_indices_items:
-        for idx in deleted_indices_items:
-            old_data = df_items_original.loc[idx].to_dict()
-            log_audit(action="DELETE", table_name="Items_Order_1", old_data=old_data)
-        st.info(f"Audit log: {len(deleted_indices_items)} row(s) deletion recorded in Items Order.")
-
     try:
         edited_df_items["Quantity"] = pd.to_numeric(edited_df_items["Quantity"], errors="coerce").fillna(0).astype(int)
         save_items_data(edited_df_items)
