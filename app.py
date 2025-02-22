@@ -226,6 +226,13 @@ with st.sidebar.expander("Row & Column Management (Main Timeline)"):
 # Configure columns for the data editor.
 # For Activity, Item, Task, Room, and Location, we use TextColumn so users can type freely.
 column_config_main = {}
+# Add ID column configuration if present in df_main (read-only)
+if "id" in df_main.columns:
+    column_config_main["id"] = st.column_config.NumberColumn(
+        "ID",
+        help="Unique Row ID (auto-increment from DB)",
+        disabled=True
+    )
 for col in ["Activity", "Item", "Task", "Room", "Location"]:
     if col in df_main.columns:
         column_config_main[col] = st.column_config.TextColumn(
@@ -629,6 +636,13 @@ st.header("Items to Order")
 
 # Define the column configuration for the items table
 items_col_config = {}
+# Add ID column configuration if present in df_items_original (read-only)
+if "id" in df_items_original.columns:
+    items_col_config["id"] = st.column_config.NumberColumn(
+        "ID",
+        help="Unique Row ID (auto-increment from DB)",
+        disabled=True
+    )
 items_col_config["Item"] = st.column_config.TextColumn(
     "Item",
     help="Enter the name of the item."
