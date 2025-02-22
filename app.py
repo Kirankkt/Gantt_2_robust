@@ -390,6 +390,10 @@ df_filtered = edited_df_main.copy()
 for col in ["Activity", "Item", "Task", "Room", "Location", "Status"]:
     df_filtered[col + "_norm"] = df_filtered[col].astype(str).str.lower().str.strip()
 
+normcols = [c for c in df_filtered.columns if c.endswith("_norm")]
+df_filtered.drop(columns=normcols, inplace=True, errors="ignore")
+
+
 if selected_activity_norm:
     df_filtered = df_filtered[df_filtered["Activity_norm"].isin(selected_activity_norm)]
 if selected_item_norm:
