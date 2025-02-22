@@ -407,15 +407,18 @@ if not show_finished:
     df_filtered = df_filtered[~df_filtered["Status_norm"].isin(["finished"])]
 
 if "Start Date" in df_filtered.columns and "End Date" in df_filtered.columns:
-    srange, erange = selected_date_range
-    srange = pd.to_datetime(srange)
-    erange = pd.to_datetime(erange)
-    df_filtered = df_filtered[
-        (df_filtered["Start Date"] >= srange) &
-        (df_filtered["End Date"] <= erange)
-    ]
-normcols = [c for c in df_filtered.columns if c.endswith("_norm")]
-df_filtered.drop(columns=normcols, inplace=True, errors="ignore")
+    # Only filter if both dates have been provided
+    if isinstance(selected_date_range, (list, tuple)) and len(selected_date_range) == 2:
+        srange, erange = selected_date_range
+        srange = pd.to_datetime(srange)
+        erange = pd.to_datetime(erange)
+        df_filtered = df_filtered[
+            (df_filtered["Start Date"] >= srange) &
+            (df_filtered["End Date"] <= erange)
+        ]
+    else:
+        st.warning("Please select both a start and an end date.")
+
 
 # ------------------------------------------------------------------------------
 # 6. GANTT CHART FUNCTION
