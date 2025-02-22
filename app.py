@@ -621,54 +621,46 @@ st.markdown("---")
 # ------------------------------------------------------------------------------
 # 9. SECOND TABLE: ITEMS TO ORDER
 # ------------------------------------------------------------------------------
+# --- Section 9: SECOND TABLE: ITEMS TO ORDER ---
+
 st.header("Items to Order")
-df_items = load_items_data()
+
+# Load original items data for comparison
+df_items_original = load_items_data()
+
+# Ensure required columns exist
 for needed_col in ["Item", "Quantity", "Order Status", "Delivery Status", "Notes"]:
-    if needed_col not in df_items.columns:
-        df_items[needed_col] = ""
-df_items["Item"] = df_items["Item"].astype(str)
-df_items["Quantity"] = pd.to_numeric(df_items["Quantity"], errors="coerce").fillna(0).astype(int)
-df_items["Order Status"] = df_items["Order Status"].astype(str)
-df_items["Delivery Status"] = df_items["Delivery Status"].astype(str)
-df_items["Notes"] = df_items["Notes"].astype(str)
+    if needed_col not in df_items_original.columns:
+        df_items_original[needed_col] = ""
 
-# Configure columns for the items table.
-# For Item, we use a TextColumn to allow freeform input.
-items_col_config = {}
-items_col_config["Item"] = st.column_config.TextColumn(
-    "Item",
-    help="Enter the name of the item."
-)
-items_col_config["Quantity"] = st.column_config.NumberColumn(
-    "Quantity",
-    min_value=0,
-    step=1,
-    help="Enter the quantity required."
-)
-items_col_config["Order Status"] = st.column_config.SelectboxColumn(
-    "Order Status",
-    options=["Ordered", "Not Ordered"],
-    help="Choose if this item is ordered or not."
-)
-items_col_config["Delivery Status"] = st.column_config.SelectboxColumn(
-    "Delivery Status",
-    options=["Delivered", "Not Delivered", "Delayed"],
-    help="Delivery status of the item."
-)
-items_col_config["Notes"] = st.column_config.TextColumn(
-    "Notes",
-    help="Enter any notes or remarks here."
-)
+df_items_original["Item"] = df_items_original["Item"].astype(str)
+df_items_original["Quantity"] = pd.to_numeric(df_items_original["Quantity"], errors="coerce").fillna(0).astype(int)
+df_items_original["Order Status"] = df_items_original["Order Status"].astype(str)
+df_items_original["Delivery Status"] = df_items_original["Delivery Status"].astype(str)
+df_items_original["Notes"] = df_items_original["Notes"].astype(str)
 
+# Render the data editor with a copy of the original data
 edited_df_items = st.data_editor(
-    df_items,
+    df_items_original.copy(),
     column_config=items_col_config,
     use_container_width=True,
     num_rows="dynamic"
 )
 
 if st.button("Save Items Table"):
+    # Detect deleted rows by comparing original indices with edited indices
+    original_indices = set(df_items_original.index)
+    edited_indices = set(edited_df_items.index)
+    deleted_indices = original_indices - edited_indices
+
+    if deleted_indices:
+        for idx in deleted_indices:
+            old_data = df_items_original.loc[idx].to_dict()
+            log_audit(action="DELETE", table_name="Items_Order_1", old_data=old_data)
+        st.info(f"Audit log: {len(deleted_indices)} row(s) deletion recorded for Items_Order_1.")
+
     try:
+        # Ensure Quantity is properly formatted
         edited_df_items["Quantity"] = pd.to_numeric(edited_df_items["Quantity"], errors="coerce").fillna(0).astype(int)
         save_items_data(edited_df_items)
         st.success("Items table successfully saved to the database!")
