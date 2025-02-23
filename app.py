@@ -145,6 +145,17 @@ st.markdown(
     "This dashboard provides an overview of the construction project, including task snapshots, "
     "timeline visualization, and progress tracking. Use the sidebar to filter and update data."
 )
+# Insert the unsaved-changes prompt
+st.markdown(
+    """
+    <script>
+    window.onbeforeunload = function() {
+        return "You have unsaved changes. Are you sure you want to leave?";
+    }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
 
 # Hide the tooltips in st.data_editor
 hide_stdataeditor_bug_tooltip = """
