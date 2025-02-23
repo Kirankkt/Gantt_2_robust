@@ -276,6 +276,9 @@ edited_df_main = st.data_editor(
     num_rows="dynamic"
 )
 
+st.info("After editing, please click 'Save Updates (Main Timeline)' and then 'Refresh Data (Main Timeline)' to apply your changes.")
+
+
 if st.button("Save Updates (Main Timeline)"):
     # Normalize status values as before
     def normalize_status(x):
@@ -712,6 +715,9 @@ edited_df_items = st.data_editor(
     use_container_width=True,
     num_rows="dynamic"
 )
+
+st.info("After editing, please click 'Save Items Table' and then 'Refresh Items Table' to apply your changes.")
+
 
 if st.button("Save Items Table"):
     # Detect deleted rows by comparing original indices with edited indices
