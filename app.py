@@ -145,6 +145,9 @@ st.markdown(
     "This dashboard provides an overview of the construction project, including task snapshots, "
     "timeline visualization, and progress tracking. Use the sidebar to filter and update data."
 )
+st.markdown(
+    "PLEASE CLICK ON SAVE AND REFRESH AFTER YOU MAKE CHANGES"
+)
 
 
 # Hide the tooltips in st.data_editor
