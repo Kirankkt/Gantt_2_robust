@@ -6,3 +6,4 @@ xlsxwriter
 python-docx
 sqlalchemy
 psycopg2-binary
+python-dateutil
